@@ -2,12 +2,23 @@ import { useDepositStore, menuItems } from './store/useDepositStore';
 import { useState } from 'react';
 
 export default function App() {
-	const { balance, orders, beerCount, customBeerPrice, addBeer, removeBeer, addToBalance, addItem, removeItem, getTotalSpent, reset } =
+	const { balance, orders, beers, addBeer, removeBeer, addToBalance, addItem, removeItem, getTotalSpent, reset, getBeersByPrice } =
 		useDepositStore();
 
 	const [replenishAmount, setReplenishAmount] = useState('');
 	const [beerPrice, setBeerPrice] = useState('300');
 	const [confirmOpen, setConfirmOpen] = useState(false);
+
+	const beerCount = beers.length;
+	const totalItems = Object.values(orders).reduce((a, b) => a + b, 0) + beerCount;
+
+	const beerPriceNum = (() => {
+		const n = parseInt(beerPrice);
+		return isNaN(n) ? 0 : n;
+	})();
+
+	const isBeerDisabled = beerPrice === '' || beerPriceNum <= 0 || beerPriceNum > balance;
+	const missingAmount = beerPriceNum > balance ? beerPriceNum - balance : 0;
 
 	const handleReplenish = () => {
 		const amount = parseInt(replenishAmount);
@@ -18,12 +29,11 @@ export default function App() {
 	};
 
 	const handleAddBeer = () => {
-		const price = parseInt(beerPrice) || 300;
+		const price = parseInt(beerPrice);
+		if (isNaN(price) || price <= 0 || price > balance) return;
 		addBeer(price);
 		setBeerPrice('300');
 	};
-
-	const totalItems = Object.values(orders).reduce((a, b) => a + b, 0) + beerCount;
 
 	const balanceColor = balance >= 6000 ? 'text-ctp-green' : balance >= 3000 ? 'text-ctp-yellow' : 'text-ctp-red';
 
@@ -57,17 +67,28 @@ export default function App() {
 			{/* Beer Section */}
 			<div className="bg-ctp-surface0 p-4 rounded-lg mb-6 shadow-lg border border-ctp-overlay0/20">
 				<h2 className="text-lg font-semibold text-ctp-text mb-3">🍺 Пиво</h2>
-				<div className="flex gap-2 items-center flex-wrap">
+				<div className="flex gap-2 items-center flex-wrap mb-3">
 					<input
 						type="number"
 						placeholder="Цена"
+						min={0}
+						max={1000}
 						value={beerPrice}
 						onChange={(e) => setBeerPrice(e.target.value)}
-						className="bg-ctp-surface1 text-ctp-text px-3 py-2 rounded w-32 border border-ctp-overlay0/30 focus:outline-none focus:ring-2 focus:ring-ctp-blue/50"
+						className={`bg-ctp-surface1 px-3 py-2 rounded w-32 border focus:outline-none focus:ring-2
+              ${
+					beerPriceNum <= 0 && beerPrice !== ''
+						? 'border-ctp-red/60 text-ctp-red bg-ctp-surface0/80'
+						: beerPriceNum > balance
+						? 'border-ctp-red/60 text-ctp-red bg-ctp-surface0/80'
+						: 'border-ctp-overlay0/30 text-ctp-text bg-ctp-surface1'
+				}
+            `}
 					/>
 					<button
 						onClick={handleAddBeer}
-						className="bg-ctp-mantle hover:bg-ctp-mantle/90 hover:text-ctp-rosewater text-ctp-text px-4 py-2 rounded font-medium transition-all duration-200 transform hover:scale-105 shadow">
+						disabled={isBeerDisabled}
+						className="bg-ctp-mantle hover:bg-ctp-mantle/90 hover:text-ctp-rosewater text-ctp-text px-4 py-2 rounded font-medium transition-all duration-200 transform hover:scale-105 shadow disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">
 						+1 Пиво
 					</button>
 					<button
@@ -77,9 +98,23 @@ export default function App() {
 						-1
 					</button>
 				</div>
-				<p className="text-ctp-subtext0 mt-2">
-					Пиво: {beerCount} × {customBeerPrice || 300} ₽
-				</p>
+
+				{beerPriceNum <= 0 && beerPrice !== '' && <p className="text-ctp-red text-sm mb-2 animate-pulse">⚠️ Цена должна быть больше 0</p>}
+				{beerPriceNum > balance && beerPriceNum > 0 && (
+					<p className="text-ctp-red text-sm mb-2 animate-pulse">⚠️ Не хватает {missingAmount.toLocaleString()} ₽</p>
+				)}
+
+				{getBeersByPrice().length > 0 ? (
+					<div className="space-y-1">
+						{getBeersByPrice().map(({ price, count }) => (
+							<p key={price} className="text-ctp-subtext0 flex items-center gap-1">
+								🍺 <span className="font-medium text-ctp-text">{price} ₽</span> ×{count}
+							</p>
+						))}
+					</div>
+				) : (
+					<p className="text-ctp-subtext0">Пока нет пива</p>
+				)}
 			</div>
 
 			{/* Menu Grid */}

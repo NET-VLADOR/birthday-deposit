@@ -23,21 +23,23 @@ export const useDepositStore = create(
 		(set, get) => ({
 			balance: initialBalance,
 			orders: {},
-			beerCount: 0,
-			customBeerPrice: 0,
+			beers: [],
 
-			addBeer: (price = 0) =>
+			addBeer: (price = 300) =>
 				set((state) => ({
-					beerCount: state.beerCount + 1,
-					customBeerPrice: price,
+					beers: [...state.beers, price],
 					balance: state.balance - price
 				})),
 
 			removeBeer: () =>
-				set((state) => ({
-					beerCount: Math.max(0, state.beerCount - 1),
-					balance: state.balance + (state.customBeerPrice || 0)
-				})),
+				set((state) => {
+					if (state.beers.length === 0) return {};
+					const lastPrice = state.beers[state.beers.length - 1];
+					return {
+						beers: state.beers.slice(0, -1),
+						balance: state.balance + lastPrice
+					};
+				}),
 
 			addToBalance: (amount) => set((state) => ({ balance: state.balance + amount })),
 
@@ -68,13 +70,26 @@ export const useDepositStore = create(
 				});
 			},
 
+			getBeersByPrice: () => {
+				const { beers } = get();
+				const map = {};
+				beers.forEach((price) => {
+					map[price] = (map[price] || 0) + 1;
+				});
+				return Object.entries(map)
+					.map(([price, count]) => ({ price: parseInt(price), count }))
+					.sort((a, b) => a.price - b.price);
+			},
+
+			getTotalBeerCount: () => get().beers.length,
+
 			getTotalSpent: () => {
 				const state = get();
 				const foodTotal = Object.entries(state.orders).reduce((sum, [id, count]) => {
 					const item = menuItems.find((i) => i.id === id);
 					return sum + (item ? item.price * count : 0);
 				}, 0);
-				const beerTotal = state.beerCount * (state.customBeerPrice || 0);
+				const beerTotal = state.beers.reduce((sum, price) => sum + price, 0);
 				return foodTotal + beerTotal;
 			},
 
@@ -82,8 +97,7 @@ export const useDepositStore = create(
 				set({
 					balance: initialBalance,
 					orders: {},
-					beerCount: 0,
-					customBeerPrice: 0
+					beers: []
 				})
 		}),
 		{
