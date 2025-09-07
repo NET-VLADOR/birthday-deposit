@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-const initialBalance = 15000;
+const initialBalance = 0;
 
 export const menuItems = [
 	{ id: 'pate-small', name: 'Pate (маленькая)', price: 350 },
@@ -21,9 +21,18 @@ export const menuItems = [
 export const useDepositStore = create(
 	persist(
 		(set, get) => ({
-			balance: initialBalance,
 			orders: {},
 			beers: [],
+			replenishments: [],
+			initialBalance,
+
+			getTotalReplenished: () => get().replenishments.reduce((sum, amount) => sum + amount, 0),
+
+			addReplenishment: (amount) =>
+				set((state) => ({
+					replenishments: [...state.replenishments, amount],
+					balance: state.balance + amount
+				})),
 
 			addBeer: (price = 300) =>
 				set((state) => ({
@@ -40,10 +49,6 @@ export const useDepositStore = create(
 						balance: state.balance + lastPrice
 					};
 				}),
-
-			setBalance: (amount) => set({ balance: amount }),
-
-			addToBalance: (amount) => set((state) => ({ balance: state.balance + amount })),
 
 			addItem: (id) => {
 				const item = menuItems.find((i) => i.id === id);
@@ -95,11 +100,18 @@ export const useDepositStore = create(
 				return foodTotal + beerTotal;
 			},
 
+			getCalculatedBalance: () => {
+				const state = get();
+				const totalSpent = state.getTotalSpent();
+				const totalReplenished = state.getTotalReplenished();
+				return state.initialBalance + totalReplenished - totalSpent;
+			},
+
 			reset: () =>
 				set({
-					balance: initialBalance,
 					orders: {},
-					beers: []
+					beers: [],
+					replenishments: []
 				})
 		}),
 		{

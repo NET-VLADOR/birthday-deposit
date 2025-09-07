@@ -2,8 +2,20 @@ import { useDepositStore, menuItems } from './store/useDepositStore';
 import { useState } from 'react';
 
 export default function App() {
-	const { balance, orders, beers, addBeer, removeBeer, addToBalance, addItem, removeItem, getTotalSpent, reset, getBeersByPrice, setBalance } =
-		useDepositStore();
+	const {
+		orders,
+		beers,
+		replenishments,
+		addReplenishment,
+		addBeer,
+		removeBeer,
+		addItem,
+		removeItem,
+		getTotalSpent,
+		getCalculatedBalance,
+		getBeersByPrice,
+		reset
+	} = useDepositStore();
 
 	const [replenishAmount, setReplenishAmount] = useState('');
 	const [beerPrice, setBeerPrice] = useState('300');
@@ -17,31 +29,32 @@ export default function App() {
 
 	const beerCount = beers.length;
 	const totalItems = Object.values(orders).reduce((a, b) => a + b, 0) + beerCount;
+	const calculatedBalance = getCalculatedBalance();
 
 	const beerPriceNum = (() => {
 		const n = parseInt(beerPrice);
 		return isNaN(n) ? 0 : n;
 	})();
 
-	const isBeerDisabled = beerPrice === '' || beerPriceNum <= 0 || beerPriceNum > balance;
-	const missingAmount = beerPriceNum > balance ? beerPriceNum - balance : 0;
+	const isBeerDisabled = beerPrice === '' || beerPriceNum <= 0 || beerPriceNum > calculatedBalance;
+	const missingAmount = beerPriceNum > calculatedBalance ? beerPriceNum - calculatedBalance : 0;
 
 	const handleReplenish = () => {
 		const amount = parseInt(replenishAmount);
 		if (amount > 0) {
-			addToBalance(amount);
+			addReplenishment(amount);
 			setReplenishAmount('');
 		}
 	};
 
 	const handleAddBeer = () => {
 		const price = parseInt(beerPrice);
-		if (isNaN(price) || price <= 0 || price > balance) return;
+		if (isNaN(price) || price <= 0 || price > calculatedBalance) return;
 		addBeer(price);
 		setBeerPrice('300');
 	};
 
-	const balanceColor = balance >= 6000 ? 'text-ctp-green' : balance >= 3000 ? 'text-ctp-yellow' : 'text-ctp-red';
+	const balanceColor = calculatedBalance >= 6000 ? 'text-ctp-green' : calculatedBalance >= 3000 ? 'text-ctp-yellow' : 'text-ctp-red';
 
 	const showNotification = (message, type = 'success') => {
 		setNotification({ show: false, message: '', type });
@@ -54,7 +67,7 @@ export default function App() {
 	};
 
 	const exportData = () => {
-		const data = { balance, orders, beers };
+		const data = { orders, beers, replenishments };
 		const jsonString = JSON.stringify(data);
 		const encoded = btoa(unescape(encodeURIComponent(jsonString)));
 		navigator.clipboard.writeText(encoded).then(
@@ -75,6 +88,8 @@ export default function App() {
 
 			reset();
 
+			data.replenishments?.forEach((amount) => addReplenishment(amount));
+
 			Object.keys(data.orders || {}).forEach((id) => {
 				const count = data.orders[id];
 				for (let i = 0; i < count; i++) {
@@ -84,12 +99,10 @@ export default function App() {
 
 			data.beers?.forEach((price) => addBeer(price));
 
-			setBalance(data.balance);
-
 			setImportString('');
-			showNotification('🎉 Данные успешно восстановлены!');
+			showNotification('🎉 Данные восстановлены! Баланс пересчитан.');
 		} catch {
-			showNotification('❌ Ошибка: неверный формат данных. Проверь строку.', 'error');
+			showNotification('❌ Ошибка: неверный формат данных.', 'error');
 		}
 	};
 
@@ -116,7 +129,7 @@ export default function App() {
 			{/* Balance */}
 			<div className="bg-ctp-surface0 p-4 rounded-lg mb-6 shadow-lg border border-ctp-overlay0/20">
 				<h2 className="text-lg font-semibold text-ctp-text mb-2">Баланс</h2>
-				<p className={`text-3xl font-bold ${balanceColor} transition-colors duration-300`}>{balance.toLocaleString()} ₽</p>
+				<p className={`text-3xl font-bold ${balanceColor} transition-colors duration-300`}>{calculatedBalance.toLocaleString()} ₽</p>
 				<div className="mt-4 flex gap-2 flex-wrap">
 					<input
 						type="number"
@@ -146,7 +159,7 @@ export default function App() {
               ${
 					beerPriceNum <= 0 && beerPrice !== ''
 						? 'border-ctp-red/60 text-ctp-red bg-ctp-surface0/80'
-						: beerPriceNum > balance
+						: beerPriceNum > calculatedBalance
 						? 'border-ctp-red/60 text-ctp-red bg-ctp-surface0/80'
 						: 'border-ctp-overlay0/30 text-ctp-text bg-ctp-surface1'
 				}
@@ -167,7 +180,7 @@ export default function App() {
 				</div>
 
 				{beerPriceNum <= 0 && beerPrice !== '' && <p className="text-ctp-red text-sm mb-2 animate-pulse">⚠️ Цена должна быть больше 0</p>}
-				{beerPriceNum > balance && beerPriceNum > 0 && (
+				{beerPriceNum > calculatedBalance && beerPriceNum > 0 && (
 					<p className="text-ctp-red text-sm mb-2 animate-pulse">⚠️ Не хватает {missingAmount.toLocaleString()} ₽</p>
 				)}
 
@@ -213,7 +226,7 @@ export default function App() {
 							<span className="w-6 text-center text-ctp-text font-medium">{orders[item.id] || 0}</span>
 							<button
 								onClick={() => addItem(item.id)}
-								disabled={balance < item.price}
+								disabled={calculatedBalance < item.price}
 								className="bg-ctp-mantle hover:bg-ctp-mantle/90 hover:text-ctp-rosewater text-ctp-text w-8 h-8 rounded flex items-center justify-center text-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm">
 								+
 							</button>
@@ -227,6 +240,7 @@ export default function App() {
 				<h2 className="text-lg font-semibold text-ctp-text mb-2">Итого</h2>
 				<p className="text-ctp-subtext0">Позиций: {totalItems}</p>
 				<p className="text-ctp-subtext0">Потрачено: {getTotalSpent().toLocaleString()} ₽</p>
+				<p className="text-ctp-subtext0">Пополнено: {replenishments.reduce((a, b) => a + b, 0).toLocaleString()} ₽</p>
 			</div>
 
 			{/* Export / Import */}
