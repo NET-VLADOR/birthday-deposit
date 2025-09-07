@@ -41,6 +41,8 @@ export const useDepositStore = create(
 					};
 				}),
 
+			setBalance: (amount) => set({ balance: amount }),
+
 			addToBalance: (amount) => set((state) => ({ balance: state.balance + amount })),
 
 			addItem: (id) => {

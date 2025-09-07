@@ -2,7 +2,7 @@ import { useDepositStore, menuItems } from './store/useDepositStore';
 import { useState } from 'react';
 
 export default function App() {
-	const { balance, orders, beers, addBeer, removeBeer, addToBalance, addItem, removeItem, getTotalSpent, reset, getBeersByPrice } =
+	const { balance, orders, beers, addBeer, removeBeer, addToBalance, addItem, removeItem, getTotalSpent, reset, getBeersByPrice, setBalance } =
 		useDepositStore();
 
 	const [replenishAmount, setReplenishAmount] = useState('');
@@ -83,6 +83,8 @@ export default function App() {
 			});
 
 			data.beers?.forEach((price) => addBeer(price));
+
+			setBalance(data.balance);
 
 			setImportString('');
 			showNotification('🎉 Данные успешно восстановлены!');
