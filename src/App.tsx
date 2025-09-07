@@ -1,6 +1,8 @@
 import { useDepositStore, menuItems } from './store/useDepositStore';
 import { useState } from 'react';
 
+type NotificationType = 'success' | 'error';
+
 export default function App() {
 	const {
 		orders,
@@ -17,11 +19,15 @@ export default function App() {
 		reset
 	} = useDepositStore();
 
-	const [replenishAmount, setReplenishAmount] = useState('');
-	const [beerPrice, setBeerPrice] = useState('300');
-	const [confirmOpen, setConfirmOpen] = useState(false);
-	const [importString, setImportString] = useState('');
-	const [notification, setNotification] = useState({
+	const [replenishAmount, setReplenishAmount] = useState<string>('');
+	const [beerPrice, setBeerPrice] = useState<string>('300');
+	const [confirmOpen, setConfirmOpen] = useState<boolean>(false);
+	const [importString, setImportString] = useState<string>('');
+	const [notification, setNotification] = useState<{
+		show: boolean;
+		message: string;
+		type: NotificationType;
+	}>({
 		show: false,
 		message: '',
 		type: 'success'
@@ -56,7 +62,7 @@ export default function App() {
 
 	const balanceColor = calculatedBalance >= 6000 ? 'text-ctp-green' : calculatedBalance >= 3000 ? 'text-ctp-yellow' : 'text-ctp-red';
 
-	const showNotification = (message, type = 'success') => {
+	const showNotification = (message: string, type: NotificationType = 'success') => {
 		setNotification({ show: false, message: '', type });
 		setTimeout(() => {
 			setNotification({ show: true, message, type });
@@ -88,7 +94,7 @@ export default function App() {
 
 			reset();
 
-			data.replenishments?.forEach((amount) => addReplenishment(amount));
+			data.replenishments?.forEach((amount: number) => addReplenishment(amount));
 
 			Object.keys(data.orders || {}).forEach((id) => {
 				const count = data.orders[id];
@@ -97,11 +103,11 @@ export default function App() {
 				}
 			});
 
-			data.beers?.forEach((price) => addBeer(price));
+			data.beers?.forEach((price: number) => addBeer(price));
 
 			setImportString('');
 			showNotification('🎉 Данные восстановлены! Баланс пересчитан.');
-		} catch {
+		} catch (err) {
 			showNotification('❌ Ошибка: неверный формат данных.', 'error');
 		}
 	};
@@ -221,7 +227,7 @@ export default function App() {
 								onClick={() => removeItem(item.id)}
 								disabled={!orders[item.id]}
 								className="bg-ctp-mantle hover:bg-ctp-mantle/90 hover:text-ctp-rosewater text-ctp-text w-8 h-8 rounded flex items-center justify-center text-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm">
-								−
+								-
 							</button>
 							<span className="w-6 text-center text-ctp-text font-medium">{orders[item.id] || 0}</span>
 							<button

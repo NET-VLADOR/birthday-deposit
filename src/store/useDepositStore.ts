@@ -1,9 +1,34 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-const initialBalance = 0;
+type MenuItem = {
+	id: string;
+	name: string;
+	price: number;
+};
 
-export const menuItems = [
+type State = {
+	orders: Record<string, number>;
+	beers: number[];
+	replenishments: number[];
+	initialBalance: number;
+};
+
+type Actions = {
+	addBeer: (price: number) => void;
+	removeBeer: () => void;
+	addReplenishment: (amount: number) => void;
+	addItem: (id: string) => void;
+	removeItem: (id: string) => void;
+	reset: () => void;
+
+	getTotalSpent: () => number;
+	getTotalReplenished: () => number;
+	getCalculatedBalance: () => number;
+	getBeersByPrice: () => Array<{ price: number; count: number }>;
+};
+
+export const menuItems: MenuItem[] = [
 	{ id: 'pate-small', name: 'Pate (маленькая)', price: 350 },
 	{ id: 'pate-big', name: 'Pate (большая)', price: 700 },
 	{ id: 'crispy-chicken-burger', name: 'Crispy Chicken Burger', price: 550 },
@@ -18,7 +43,11 @@ export const menuItems = [
 	{ id: 'sauce-hell', name: 'Соус "Ticket to Hell"', price: 200 }
 ];
 
-export const useDepositStore = create(
+const initialBalance = 15000;
+
+export type UseDepositStore = State & Actions;
+
+export const useDepositStore = create<UseDepositStore>()(
 	persist(
 		(set, get) => ({
 			orders: {},
@@ -30,35 +59,28 @@ export const useDepositStore = create(
 
 			addReplenishment: (amount) =>
 				set((state) => ({
-					replenishments: [...state.replenishments, amount],
-					balance: state.balance + amount
+					replenishments: [...state.replenishments, amount]
 				})),
 
 			addBeer: (price = 300) =>
 				set((state) => ({
-					beers: [...state.beers, price],
-					balance: state.balance - price
+					beers: [...state.beers, price]
 				})),
 
 			removeBeer: () =>
 				set((state) => {
 					if (state.beers.length === 0) return {};
-					const lastPrice = state.beers[state.beers.length - 1];
 					return {
-						beers: state.beers.slice(0, -1),
-						balance: state.balance + lastPrice
+						beers: state.beers.slice(0, -1)
 					};
 				}),
 
 			addItem: (id) => {
-				const item = menuItems.find((i) => i.id === id);
-				if (!item || get().balance < item.price) return;
 				set((state) => ({
 					orders: {
 						...state.orders,
 						[id]: (state.orders[id] || 0) + 1
-					},
-					balance: state.balance - item.price
+					}
 				}));
 			},
 
@@ -71,15 +93,14 @@ export const useDepositStore = create(
 					if (newCount <= 0) delete newOrders[id];
 					else newOrders[id] = newCount;
 					return {
-						orders: newOrders,
-						balance: state.balance + item.price
+						orders: newOrders
 					};
 				});
 			},
 
 			getBeersByPrice: () => {
 				const { beers } = get();
-				const map = {};
+				const map: Record<number, number> = {};
 				beers.forEach((price) => {
 					map[price] = (map[price] || 0) + 1;
 				});
@@ -87,8 +108,6 @@ export const useDepositStore = create(
 					.map(([price, count]) => ({ price: parseInt(price), count }))
 					.sort((a, b) => a.price - b.price);
 			},
-
-			getTotalBeerCount: () => get().beers.length,
 
 			getTotalSpent: () => {
 				const state = get();
