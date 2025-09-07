@@ -46,3 +46,18 @@
 ::selection {
 	background-color: var(--selection-bg);
 }
+
+.animate-notification {
+	animation: slide-down 0.3s ease-out forwards;
+}
+
+@keyframes slide-down {
+	0% {
+		opacity: 0;
+		transform: translateY(-20px);
+	}
+	100% {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}

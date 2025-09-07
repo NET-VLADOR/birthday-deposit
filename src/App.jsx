@@ -8,6 +8,12 @@ export default function App() {
 	const [replenishAmount, setReplenishAmount] = useState('');
 	const [beerPrice, setBeerPrice] = useState('300');
 	const [confirmOpen, setConfirmOpen] = useState(false);
+	const [importString, setImportString] = useState('');
+	const [notification, setNotification] = useState({
+		show: false,
+		message: '',
+		type: 'success'
+	});
 
 	const beerCount = beers.length;
 	const totalItems = Object.values(orders).reduce((a, b) => a + b, 0) + beerCount;
@@ -37,8 +43,69 @@ export default function App() {
 
 	const balanceColor = balance >= 6000 ? 'text-ctp-green' : balance >= 3000 ? 'text-ctp-yellow' : 'text-ctp-red';
 
+	const showNotification = (message, type = 'success') => {
+		setNotification({ show: false, message: '', type });
+		setTimeout(() => {
+			setNotification({ show: true, message, type });
+			setTimeout(() => {
+				setNotification((prev) => ({ ...prev, show: false }));
+			}, 3000);
+		}, 10);
+	};
+
+	const exportData = () => {
+		const data = { balance, orders, beers };
+		const jsonString = JSON.stringify(data);
+		const encoded = btoa(unescape(encodeURIComponent(jsonString)));
+		navigator.clipboard.writeText(encoded).then(
+			() => showNotification('✅ Данные скопированы! Отправь их другу.'),
+			() => showNotification('❌ Не удалось скопировать. Попробуй вручную.', 'error')
+		);
+	};
+
+	const importData = () => {
+		if (!importString.trim()) {
+			showNotification('⚠️ Строка пуста', 'error');
+			return;
+		}
+
+		try {
+			const decoded = decodeURIComponent(escape(atob(importString.trim())));
+			const data = JSON.parse(decoded);
+
+			reset();
+
+			Object.keys(data.orders || {}).forEach((id) => {
+				const count = data.orders[id];
+				for (let i = 0; i < count; i++) {
+					addItem(id);
+				}
+			});
+
+			data.beers?.forEach((price) => addBeer(price));
+
+			setImportString('');
+			showNotification('🎉 Данные успешно восстановлены!');
+		} catch {
+			showNotification('❌ Ошибка: неверный формат данных. Проверь строку.', 'error');
+		}
+	};
+
 	return (
 		<div className="min-h-screen bg-ctp-base text-ctp-text px-4 py-6 max-w-2xl mx-auto">
+			{/* === Notification Toast === */}
+			{notification.show && (
+				<div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-notification">
+					<div
+						className={`px-6 py-3 rounded-lg shadow-xl border-2 font-medium
+              ${notification.type === 'success' ? 'bg-ctp-green/20 border-ctp-green text-ctp-green' : 'bg-ctp-red/20 border-ctp-red text-ctp-red'}
+              backdrop-blur-sm
+            `}>
+						{notification.message}
+					</div>
+				</div>
+			)}
+
 			<header className="text-center mb-6">
 				<h1 className="text-2xl md:text-3xl font-bold text-ctp-rosewater mb-2">🎉 День Рождения!</h1>
 				<p className="text-ctp-subtext0">Управляй депозитом: 15 000 ₽ (и пополняй!)</p>
@@ -71,8 +138,6 @@ export default function App() {
 					<input
 						type="number"
 						placeholder="Цена"
-						min={0}
-						max={1000}
 						value={beerPrice}
 						onChange={(e) => setBeerPrice(e.target.value)}
 						className={`bg-ctp-surface1 px-3 py-2 rounded w-32 border focus:outline-none focus:ring-2
@@ -160,6 +225,38 @@ export default function App() {
 				<h2 className="text-lg font-semibold text-ctp-text mb-2">Итого</h2>
 				<p className="text-ctp-subtext0">Позиций: {totalItems}</p>
 				<p className="text-ctp-subtext0">Потрачено: {getTotalSpent().toLocaleString()} ₽</p>
+			</div>
+
+			{/* Export / Import */}
+			<div className="mt-8 p-4 bg-ctp-surface0 rounded-lg border border-ctp-overlay0/20">
+				<h3 className="text-lg font-semibold text-ctp-text mb-3">🔐 Перенос данных</h3>
+
+				<div className="mb-4">
+					<button onClick={exportData} className="bg-ctp-blue hover:bg-ctp-blue/90 text-ctp-base px-5 py-2 rounded font-medium transition">
+						🔐 Экспортировать данные
+					</button>
+					<p className="text-ctp-subtext0 text-xs mt-1">Скопирует зашифрованную строку в буфер. Отправь её другу.</p>
+				</div>
+
+				<div>
+					<label className="block text-ctp-text text-sm font-medium mb-1">🔓 Восстановить из строки:</label>
+					<div className="flex gap-2 flex-wrap">
+						<input
+							type="text"
+							placeholder="Вставь строку сюда"
+							value={importString}
+							onChange={(e) => setImportString(e.target.value)}
+							className="bg-ctp-surface1 text-ctp-text px-3 py-2 rounded flex-1 min-w-0 border border-ctp-overlay0/30 focus:outline-none focus:ring-2 focus:ring-ctp-blue/50"
+						/>
+						<button
+							onClick={importData}
+							disabled={!importString.trim()}
+							className="bg-ctp-mauve hover:bg-ctp-mauve/90 text-ctp-base px-4 py-2 rounded font-medium transition disabled:opacity-50 disabled:cursor-not-allowed">
+							Восстановить
+						</button>
+					</div>
+					<p className="text-ctp-subtext0 text-xs mt-1">Вставь строку, полученную от друга, и нажми "Восстановить".</p>
+				</div>
 			</div>
 
 			{/* Reset Button */}
