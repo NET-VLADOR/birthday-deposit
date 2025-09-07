@@ -1,0 +1,48 @@
+@import 'tailwindcss';
+@import '@catppuccin/tailwindcss/mocha.css';
+
+@layer base {
+	:root {
+		--bg-panel: #1e1e2e;
+		--bg-secondary: #181825;
+		--bg-surface: #313244;
+		--text-primary: #cdd6f4;
+		--text-secondary: #a6adc8;
+		--selection-bg: #9399b220;
+		--cursor: #f5e0dc;
+	}
+
+	*,
+	::before,
+	::after {
+		box-sizing: border-box;
+	}
+
+	body {
+		margin: 0;
+		font-family: 'Segoe UI', sans-serif;
+		background-color: var(--bg-panel);
+		color: var(--text-primary);
+		min-height: 100vh;
+		line-height: 1.5;
+		-webkit-font-smoothing: antialiased;
+		-moz-osx-font-smoothing: grayscale;
+	}
+
+	h1,
+	h2,
+	h3,
+	h4,
+	h5,
+	h6,
+	p,
+	ol,
+	ul {
+		margin: 0;
+		padding: 0;
+	}
+}
+
+::selection {
+	background-color: var(--selection-bg);
+}
