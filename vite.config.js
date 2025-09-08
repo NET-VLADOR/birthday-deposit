@@ -4,5 +4,10 @@ import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
 	base: 'birthday-deposit',
-	plugins: [react(), tailwindcss()]
+	plugins: [react(), tailwindcss()],
+	test: {
+		environment: 'jsdom',
+		globals: true,
+		setupFiles: './src/setupTests.ts'
+	}
 });

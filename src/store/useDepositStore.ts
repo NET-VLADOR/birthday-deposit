@@ -76,12 +76,18 @@ export const useDepositStore = create<UseDepositStore>()(
 				}),
 
 			addItem: (id) => {
-				set((state) => ({
-					orders: {
-						...state.orders,
-						[id]: (state.orders[id] || 0) + 1
-					}
-				}));
+				const item = menuItems.find((i) => i.id === id);
+				if (!item) return;
+
+				const currentBalance = get().getCalculatedBalance();
+				if (currentBalance >= item.price) {
+					set((state) => ({
+						orders: {
+							...state.orders,
+							[id]: (state.orders[id] || 0) + 1
+						}
+					}));
+				}
 			},
 
 			removeItem: (id) => {
