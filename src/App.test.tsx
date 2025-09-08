@@ -2,7 +2,6 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import App from './App';
 import { vi } from 'vitest';
 
-// Mock localStorage
 const localStorageMock = (() => {
 	let store: Record<string, string> = {};
 	return {

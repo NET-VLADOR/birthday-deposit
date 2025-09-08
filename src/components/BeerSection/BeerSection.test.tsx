@@ -66,7 +66,7 @@ describe('BeerSection', () => {
 		fireEvent.click(screen.getByText('+1 Пиво'));
 
 		expect(mockAddBeer).toHaveBeenCalledWith(400);
-		expect(input).toHaveValue(300); // reset to default
+		expect(input).toHaveValue(300);
 	});
 
 	it('disables remove button when no beers', () => {

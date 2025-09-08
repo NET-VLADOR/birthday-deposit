@@ -1,4 +1,4 @@
-import { PromoCode, useDepositStore } from './store/useDepositStore';
+import { initialPromos, PromoCode, useDepositStore } from './store/useDepositStore';
 import { useState, useEffect } from 'react';
 import LoginScreen from './components/LoginScreen/LoginScreen';
 import NotificationToast from './components/NotificationToast';
@@ -14,6 +14,8 @@ import Footer from './components/Footer';
 import { ConfirmModal } from './components/ConfirmModal';
 import PromoGuestInput from './components/PromoGuestInput';
 import PromoAdminSection from './components/PromoAdminSection';
+import LuckSection from './components/LuckSection';
+import LuckAdminSection from './components/LuckAdminSection';
 
 type NotificationType = 'success' | 'error';
 type Role = 'admin' | 'guest' | null;
@@ -25,6 +27,10 @@ export default function App() {
 		replenishments,
 		promos,
 		promoTransactions,
+		attempts,
+		unlockAttempt,
+		hasAttempt,
+		tryLuck,
 		getRandomPromo,
 		addPromoTransaction,
 		applyPromo,
@@ -91,7 +97,14 @@ export default function App() {
 	const calculatedBalance = getCalculatedBalance();
 
 	const exportData = () => {
-		const data = { orders, beers, replenishments, promos, promoTransactions };
+		const data = {
+			orders,
+			beers,
+			replenishments,
+			promos,
+			promoTransactions,
+			attempts
+		};
 		const jsonString = JSON.stringify(data);
 		const encoded = btoa(unescape(encodeURIComponent(jsonString)));
 		navigator.clipboard.writeText(encoded).then(
@@ -110,19 +123,17 @@ export default function App() {
 			const decoded = decodeURIComponent(escape(atob(importString.trim())));
 			const data = JSON.parse(decoded);
 
+			reset();
+
 			if (Array.isArray(data.replenishments)) {
 				data.replenishments.forEach((amount: number) => addReplenishment(amount));
 			}
 
 			if (data.orders && typeof data.orders === 'object') {
 				Object.entries(data.orders).forEach(([id, count]) => {
-					const currentCount = orders[id] || 0;
-					const importedCount = count as number;
-					const diff = importedCount - currentCount;
-					if (diff > 0) {
-						for (let i = 0; i < diff; i++) {
-							addItem(id);
-						}
+					const numCount = count as number;
+					for (let i = 0; i < numCount; i++) {
+						addItem(id);
 					}
 				});
 			}
@@ -132,21 +143,26 @@ export default function App() {
 			}
 
 			if (Array.isArray(data.promos)) {
+				const freshPromos = initialPromos.map((p) => ({ ...p }));
 				data.promos.forEach((importedPromo: PromoCode) => {
-					if (importedPromo.used) {
-						const existingPromo = promos.find((p) => p.id === importedPromo.id);
-						if (existingPromo && !existingPromo.used) {
-							issuePromo(existingPromo.id);
-						}
+					const freshPromo = freshPromos.find((p) => p.id === importedPromo.id);
+					if (freshPromo) {
+						freshPromo.used = importedPromo.used;
 					}
 				});
+				useDepositStore.setState({ promos: freshPromos });
 			}
 
 			if (Array.isArray(data.promoTransactions)) {
-				const existingAts = new Set(promoTransactions.map((tx) => tx.at));
-				data.promoTransactions.forEach((tx: any) => {
-					if (!existingAts.has(tx.at)) {
-						addPromoTransaction(tx);
+				useDepositStore.setState({ promoTransactions: [...data.promoTransactions] });
+			}
+
+			if (data.attempts) {
+				useDepositStore.setState({
+					attempts: {
+						first: !!data.attempts.first,
+						second: !!data.attempts.second,
+						third: !!data.attempts.third
 					}
 				});
 			}
@@ -192,6 +208,9 @@ export default function App() {
 			{role === 'admin' && (
 				<PromoAdminSection issuePromo={issuePromo} promos={promos} getRandomPromo={getRandomPromo} showNotification={showNotification} />
 			)}
+
+			{role === 'guest' && <LuckSection hasAttempt={hasAttempt} tryLuck={tryLuck} showNotification={showNotification} />}
+			{role === 'admin' && <LuckAdminSection unlockAttempt={unlockAttempt} attempts={attempts} showNotification={showNotification} />}
 
 			<DataPanel role={role} exportData={exportData} importData={importData} showNotification={showNotification} />
 
