@@ -208,3 +208,121 @@ describe('useDepositStore', () => {
 		});
 	});
 });
+
+describe('Promo Codes', () => {
+	const promoCode = 'OSTRO';
+	const promoId = 'p1';
+
+	test('should apply promo code successfully and mark as used', () => {
+		const { applyPromo, promos, getTotalPromoSpent } = useDepositStore.getState();
+
+		// Промокод изначально не использован
+		const promoBefore = promos.find((p) => p.code === promoCode);
+		expect(promoBefore?.used).toBe(false);
+
+		// Применяем
+		const success = applyPromo(promoCode);
+		expect(success).toBe(true);
+
+		// Проверяем, что помечен как использованный
+		const { promos: promosAfter } = useDepositStore.getState();
+		const promoAfter = promosAfter.find((p) => p.code === promoCode);
+		expect(promoAfter?.used).toBe(true);
+
+		// Проверяем, что добавилась транзакция (крылья = 450₽)
+		expect(getTotalPromoSpent()).toBe(450);
+	});
+
+	test('should not apply promo code if already used', () => {
+		const { applyPromo } = useDepositStore.getState();
+
+		// Применяем первый раз
+		let success = applyPromo(promoCode);
+		expect(success).toBe(true);
+
+		// Применяем второй раз
+		success = applyPromo(promoCode);
+		expect(success).toBe(false); // уже использован
+	});
+
+	test('should issue promo code as admin and record transaction', () => {
+		const { issuePromo, getTotalPromoSpent, promos } = useDepositStore.getState();
+
+		// Выдаем админом
+		const issued = issuePromo(promoId);
+		expect(issued).not.toBeNull();
+		expect(issued?.code).toBe(promoCode);
+
+		// Проверяем статус
+		const { promos: promosAfter } = useDepositStore.getState();
+		const promoAfter = promosAfter.find((p) => p.id === promoId);
+		expect(promoAfter?.used).toBe(true);
+
+		// Проверяем транзакцию
+		expect(getTotalPromoSpent()).toBe(450);
+	});
+
+	test('should not issue promo code if already used', () => {
+		const { issuePromo, applyPromo } = useDepositStore.getState();
+
+		// Гость уже активировал
+		applyPromo(promoCode);
+
+		// Админ пытается выдать — должно вернуть null
+		const issued = issuePromo(promoId);
+		expect(issued).toBeNull();
+	});
+
+	test('should export and import promo data correctly', () => {
+		const { applyPromo, reset, addPromoTransaction, markPromoUsed, getTotalPromoSpent, promos } = useDepositStore.getState();
+
+		// Гость активирует промокод
+		applyPromo(promoCode);
+
+		// Экспортируем всё
+		const state = useDepositStore.getState();
+		const exportedData = {
+			orders: { ...state.orders },
+			beers: [...state.beers],
+			replenishments: [...state.replenishments],
+			promos: [...state.promos],
+			promoTransactions: [...state.promoTransactions]
+		};
+
+		// Сбрасываем
+		reset();
+
+		// Импортируем
+		exportedData.replenishments.forEach((amount) => useDepositStore.getState().addReplenishment(amount));
+		Object.keys(exportedData.orders).forEach((id) => {
+			const count = exportedData.orders[id];
+			for (let i = 0; i < count; i++) {
+				useDepositStore.getState().addItem(id);
+			}
+		});
+		exportedData.beers.forEach((price) => useDepositStore.getState().addBeer(price));
+
+		// 🔥 Импортируем промокоды и транзакции
+		exportedData.promos.forEach((importedPromo) => {
+			if (importedPromo.used) {
+				const existing = useDepositStore.getState().promos.find((p) => p.id === importedPromo.id);
+				if (existing && !existing.used) {
+					useDepositStore.getState().markPromoUsed(existing.id);
+				}
+			}
+		});
+
+		exportedData.promoTransactions.forEach((tx) => {
+			const existingAts = new Set(useDepositStore.getState().promoTransactions.map((t) => t.at));
+			if (!existingAts.has(tx.at)) {
+				useDepositStore.getState().addPromoTransaction(tx);
+			}
+		});
+
+		// Проверяем
+		const { promos: importedPromos, getTotalPromoSpent: getImportedTotal } = useDepositStore.getState();
+		const importedPromo = importedPromos.find((p) => p.code === promoCode);
+		expect(importedPromo?.used).toBe(true);
+		expect(getImportedTotal()).toBe(450);
+	});
+});

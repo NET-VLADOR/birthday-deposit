@@ -9,7 +9,7 @@ export default function Header({ role, onLogout }: HeaderProps) {
 			<div>
 				<h1 className="text-xl font-bold text-ctp-rosewater">🎉 День Рождения</h1>
 				<p className="text-ctp-subtext0 text-sm">
-					Роль: <span className="font-medium">{role === 'admin' ? 'Админ' : 'Гость'}</span>
+					Роль: <span className="font-medium">{role === 'admin' ? 'Владос' : 'Гость'}</span>
 				</p>
 			</div>
 			<button onClick={onLogout} className="bg-ctp-overlay1 hover:bg-ctp-overlay1/80 text-ctp-text text-sm px-3 py-1 rounded transition">

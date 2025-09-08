@@ -40,7 +40,7 @@ describe('App', () => {
 		fireEvent.change(screen.getByPlaceholderText('Пароль'), { target: { value: 'bd120925' } });
 		fireEvent.click(screen.getByText('Войти'));
 
-		await screen.findByText('Админ');
+		await screen.findByText('Владос');
 		expect(screen.getByText('💸 Пополнить баланс')).toBeInTheDocument();
 		expect(screen.getByText('🗑️ Сбросить всё')).toBeInTheDocument();
 	});

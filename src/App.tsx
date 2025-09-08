@@ -1,4 +1,4 @@
-import { useDepositStore } from './store/useDepositStore';
+import { PromoCode, useDepositStore } from './store/useDepositStore';
 import { useState, useEffect } from 'react';
 import LoginScreen from './components/LoginScreen/LoginScreen';
 import NotificationToast from './components/NotificationToast';
@@ -12,6 +12,8 @@ import DataPanel from './components/DataPanel';
 import ResetButton from './components/ResetButton';
 import Footer from './components/Footer';
 import { ConfirmModal } from './components/ConfirmModal';
+import PromoGuestInput from './components/PromoGuestInput';
+import PromoAdminSection from './components/PromoAdminSection';
 
 type NotificationType = 'success' | 'error';
 type Role = 'admin' | 'guest' | null;
@@ -21,13 +23,20 @@ export default function App() {
 		orders,
 		beers,
 		replenishments,
+		promos,
+		promoTransactions,
+		getRandomPromo,
+		addPromoTransaction,
+		applyPromo,
 		addReplenishment,
+		issuePromo,
 		addBeer,
 		removeBeer,
 		addItem,
 		removeItem,
 		getTotalSpent,
 		getCalculatedBalance,
+		getTotalPromoSpent,
 		getBeersByPrice,
 		reset
 	} = useDepositStore();
@@ -82,7 +91,7 @@ export default function App() {
 	const calculatedBalance = getCalculatedBalance();
 
 	const exportData = () => {
-		const data = { orders, beers, replenishments };
+		const data = { orders, beers, replenishments, promos, promoTransactions };
 		const jsonString = JSON.stringify(data);
 		const encoded = btoa(unescape(encodeURIComponent(jsonString)));
 		navigator.clipboard.writeText(encoded).then(
@@ -92,20 +101,55 @@ export default function App() {
 	};
 
 	const importData = (importString: string) => {
+		if (!importString.trim()) {
+			showNotification('⚠️ Строка пуста', 'error');
+			return;
+		}
+
 		try {
 			const decoded = decodeURIComponent(escape(atob(importString.trim())));
 			const data = JSON.parse(decoded);
 
-			reset();
+			if (Array.isArray(data.replenishments)) {
+				data.replenishments.forEach((amount: number) => addReplenishment(amount));
+			}
 
-			data.replenishments?.forEach((amount: number) => addReplenishment(amount));
-			Object.keys(data.orders || {}).forEach((id) => {
-				const count = data.orders[id];
-				for (let i = 0; i < count; i++) {
-					addItem(id);
-				}
-			});
-			data.beers?.forEach((price: number) => addBeer(price));
+			if (data.orders && typeof data.orders === 'object') {
+				Object.entries(data.orders).forEach(([id, count]) => {
+					const currentCount = orders[id] || 0;
+					const importedCount = count as number;
+					const diff = importedCount - currentCount;
+					if (diff > 0) {
+						for (let i = 0; i < diff; i++) {
+							addItem(id);
+						}
+					}
+				});
+			}
+
+			if (Array.isArray(data.beers)) {
+				data.beers.forEach((price: number) => addBeer(price));
+			}
+
+			if (Array.isArray(data.promos)) {
+				data.promos.forEach((importedPromo: PromoCode) => {
+					if (importedPromo.used) {
+						const existingPromo = promos.find((p) => p.id === importedPromo.id);
+						if (existingPromo && !existingPromo.used) {
+							issuePromo(existingPromo.id);
+						}
+					}
+				});
+			}
+
+			if (Array.isArray(data.promoTransactions)) {
+				const existingAts = new Set(promoTransactions.map((tx) => tx.at));
+				data.promoTransactions.forEach((tx: any) => {
+					if (!existingAts.has(tx.at)) {
+						addPromoTransaction(tx);
+					}
+				});
+			}
 
 			showNotification('🎉 Данные обновлены!');
 		} catch (err) {
@@ -135,7 +179,19 @@ export default function App() {
 
 			<MenuGrid orders={orders} calculatedBalance={calculatedBalance} role={role} addItem={addItem} removeItem={removeItem} />
 
-			<SummarySection totalItems={totalItems} totalSpent={getTotalSpent()} replenishments={replenishments} role={role} />
+			<SummarySection
+				totalPromoSpent={getTotalPromoSpent()}
+				totalItems={totalItems}
+				totalSpent={getTotalSpent()}
+				replenishments={replenishments}
+				role={role}
+			/>
+
+			{role === 'guest' && <PromoGuestInput promos={promos} applyPromo={applyPromo} showNotification={showNotification} />}
+
+			{role === 'admin' && (
+				<PromoAdminSection issuePromo={issuePromo} promos={promos} getRandomPromo={getRandomPromo} showNotification={showNotification} />
+			)}
 
 			<DataPanel role={role} exportData={exportData} importData={importData} showNotification={showNotification} />
 
