@@ -1,4 +1,3 @@
-// src/store/useDepositStore.test.ts
 import { useDepositStore } from './useDepositStore';
 
 // Сброс хранилища перед каждым тестом
