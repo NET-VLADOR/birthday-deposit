@@ -1,4 +1,4 @@
-import { initialPromos, PromoCode, useDepositStore } from './store/useDepositStore';
+import { PromoCode, useDepositStore } from './store/useDepositStore';
 import { useState, useEffect } from 'react';
 import LoginScreen from './components/LoginScreen/LoginScreen';
 import NotificationToast from './components/NotificationToast';
@@ -16,6 +16,7 @@ import PromoGuestInput from './components/PromoGuestInput';
 import PromoAdminSection from './components/PromoAdminSection';
 import LuckSection from './components/LuckSection';
 import LuckAdminSection from './components/LuckAdminSection';
+import { initialPromos } from './store/types';
 
 type NotificationType = 'success' | 'error';
 type Role = 'admin' | 'guest' | null;
@@ -32,7 +33,8 @@ export default function App() {
 		hasAttempt,
 		tryLuck,
 		getRandomPromo,
-		addPromoTransaction,
+		syncFromCloud,
+		syncToCloud,
 		applyPromo,
 		addReplenishment,
 		issuePromo,
@@ -64,6 +66,35 @@ export default function App() {
 		if (savedRole === 'admin' || savedRole === 'guest') {
 			setRole(savedRole as Role);
 		}
+	}, []);
+
+	useEffect(() => {
+		if (role === 'guest') {
+			const { startListeningToCloud, syncFromCloud, showNotification } = useDepositStore.getState();
+
+			const unsubscribe = startListeningToCloud(() => {
+				syncFromCloud();
+				showNotification('🔔 Данные обновлены администратором!', 'success');
+			});
+
+			return () => {
+				unsubscribe();
+			};
+		}
+	}, [role]);
+
+	useEffect(() => {
+		useDepositStore.setState({
+			showNotification: (message, type = 'success') => {
+				setNotification({ show: false, message: '', type });
+				setTimeout(() => {
+					setNotification({ show: true, message, type });
+					setTimeout(() => {
+						setNotification((prev) => ({ ...prev, show: false }));
+					}, 3000);
+				}, 10);
+			}
+		});
 	}, []);
 
 	const showNotification = (message: string, type: NotificationType = 'success') => {
@@ -212,7 +243,14 @@ export default function App() {
 			{role === 'guest' && <LuckSection hasAttempt={hasAttempt} tryLuck={tryLuck} showNotification={showNotification} />}
 			{role === 'admin' && <LuckAdminSection unlockAttempt={unlockAttempt} attempts={attempts} showNotification={showNotification} />}
 
-			<DataPanel role={role} exportData={exportData} importData={importData} showNotification={showNotification} />
+			<DataPanel
+				role={role}
+				exportData={exportData}
+				importData={importData}
+				showNotification={showNotification}
+				syncToCloud={syncToCloud}
+				syncFromCloud={syncFromCloud}
+			/>
 
 			{role === 'admin' && (
 				<>

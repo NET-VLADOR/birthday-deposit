@@ -5,9 +5,11 @@ type DataPanelProps = {
 	exportData: () => void;
 	importData: (dataString: string) => void;
 	showNotification: (message: string, type?: 'success' | 'error') => void;
+	syncToCloud: () => Promise<void>;
+	syncFromCloud: () => Promise<void>;
 };
 
-export default function DataPanel({ role, exportData, importData, showNotification }: DataPanelProps) {
+export default function DataPanel({ role, exportData, importData, showNotification, syncToCloud, syncFromCloud }: DataPanelProps) {
 	const [importString, setImportString] = useState('');
 
 	const handleImport = () => {
@@ -50,6 +52,23 @@ export default function DataPanel({ role, exportData, importData, showNotificati
 					</div>
 					<p className="text-ctp-subtext0 text-xs mt-1">Вставь строку от другого админа.</p>
 				</div>
+
+				<div className="mt-4">
+					<h4 className="text-sm font-medium text-ctp-text mb-2">☁️ Облачная синхронизация</h4>
+					<div className="flex gap-2 flex-wrap">
+						<button
+							onClick={() => syncToCloud()}
+							className="bg-ctp-blue hover:bg-ctp-blue/90 text-ctp-base px-4 py-2 rounded font-medium transition">
+							Сохранить в облако
+						</button>
+						<button
+							onClick={() => syncFromCloud()}
+							className="bg-ctp-green hover:bg-ctp-green/90 text-ctp-base px-4 py-2 rounded font-medium transition">
+							Загрузить из облака
+						</button>
+					</div>
+					<p className="text-ctp-subtext0 text-xs mt-1">Автоматически синхронизирует всех участников.</p>
+				</div>
 			</div>
 		);
 	}
@@ -74,6 +93,18 @@ export default function DataPanel({ role, exportData, importData, showNotificati
 				</button>
 			</div>
 			<p className="text-ctp-subtext0 text-xs mt-1">Чтобы увидеть актуальный баланс.</p>
+
+			<div className="mt-4">
+				<h4 className="text-sm font-medium text-ctp-text mb-2">☁️ Облачная синхронизация</h4>
+				<div className="flex gap-2 flex-wrap">
+					<button
+						onClick={() => syncFromCloud()}
+						className="bg-ctp-green hover:bg-ctp-green/90 text-ctp-base px-4 py-2 rounded font-medium transition">
+						Загрузить из облака
+					</button>
+				</div>
+				<p className="text-ctp-subtext0 text-xs mt-1">Автоматически синхронизирует всех участников.</p>
+			</div>
 		</div>
 	);
 }
