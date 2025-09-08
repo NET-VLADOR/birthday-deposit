@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useSwipeable } from 'react-swipeable';
-import { MenuItem, menuItems } from '../../store/useDepositStore';
+import { MenuItem } from '../../store/useDepositStore';
+import { menuItems } from '../../store/types';
 
 type MenuGridProps = {
 	orders: Record<string, number>;
