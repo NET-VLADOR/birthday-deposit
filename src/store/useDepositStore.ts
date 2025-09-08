@@ -5,6 +5,7 @@ export type MenuItem = {
 	id: string;
 	name: string;
 	price: number;
+	category?: 'snack';
 };
 
 export const menuItems: MenuItem[] = [
@@ -19,7 +20,13 @@ export const menuItems: MenuItem[] = [
 	{ id: 'chicken-wings', name: 'Крылья куринные', price: 450 },
 	{ id: 'fries', name: 'Картофель фри', price: 220 },
 	{ id: 'sauce', name: 'Соус', price: 70 },
-	{ id: 'sauce-hell', name: 'Соус "Ticket to Hell"', price: 200 }
+	{ id: 'sauce-hell', name: 'Соус "Ticket to Hell"', price: 200 },
+	{ id: 'snack-peanuts', name: 'Арахис', price: 100, category: 'snack' },
+	{ id: 'snack-chips', name: 'Чипсы', price: 130, category: 'snack' },
+	{ id: 'snack-cheese', name: 'Сыр копченый', price: 250, category: 'snack' },
+	{ id: 'snack-jerky', name: 'Джерки', price: 390, category: 'snack' },
+	{ id: 'snack-popcorn', name: 'Попкорн', price: 100, category: 'snack' },
+	{ id: 'snack-egg', name: 'Маринованное яйцо', price: 120, category: 'snack' }
 ];
 
 export type PromoCode = {
